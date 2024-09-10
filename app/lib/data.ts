@@ -1,5 +1,6 @@
 import { sql } from '@vercel/postgres';
 import {
+  CardData,
   CustomerField,
   CustomersTableType,
   InvoiceForm,
@@ -40,28 +41,25 @@ export async function fetchLatestInvoices(): Promise<{ amount: string; name: str
   }
 }
 
-export async function fetchCardData() {
+export async function fetchCardData(): Promise<CardData> {
   try {
-    const data = await sql`
+    const result = await sql`
       SELECT
-        COUNT(*) AS total_invoices,
-        COUNT(DISTINCT customer_id) AS total_customers,
-        SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS total_paid,
-        SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS total_pending
+        (SELECT COUNT(*) FROM invoices) AS "invoices_count",
+        (SELECT COUNT(*) FROM customers) AS "customers_count",
+        SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "total_paid",
+        SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "total_pending"
       FROM invoices
     `;
 
-    const numberOfInvoices = Number(data.rows[0].total_invoices ?? '0');
-    const numberOfCustomers = Number(data.rows[0].total_customers ?? '0');
-    const totalPaidInvoices = formatCurrency(data.rows[0].total_paid ?? '0');
-    const totalPendingInvoices = formatCurrency(data.rows[0].total_pending ?? '0');
+    const first = result.rows[0];
 
     return {
-      numberOfCustomers,
-      numberOfInvoices,
-      totalPaidInvoices,
-      totalPendingInvoices,
-    };
+      invoiceCount: first.invoices_count,
+      customersCount: first.customers_count,
+      totalPaid: formatCurrency(first.total_paid),
+      totalPending: formatCurrency(first.total_pending),
+    }
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch card data.');
