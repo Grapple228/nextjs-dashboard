@@ -20,7 +20,7 @@ export async function fetchRevenue() {
   }
 }
 
-export async function fetchLatestInvoices() {
+export async function fetchLatestInvoices(): Promise<{ amount: string; name: string; image_url: string; email: string; id: string  }[]> {
   try {
     const data = await sql<LatestInvoiceRaw>`
       SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
@@ -29,7 +29,7 @@ export async function fetchLatestInvoices() {
       ORDER BY invoices.date DESC
       LIMIT 5`;
 
-    const latestInvoices = data.rows.map((invoice: { amount: number; }) => ({
+    const latestInvoices = data.rows.map((invoice: { amount: number;name: string; image_url: string; email: string; id: string  }) => ({
       ...invoice,
       amount: formatCurrency(invoice.amount),
     }));
@@ -125,7 +125,7 @@ export async function fetchInvoicesPages(query: string) {
   }
 }
 
-export async function fetchInvoiceById(id: string) {
+export async function fetchInvoiceById(id: string): Promise<{ id: string; customer_id: string; amount: number; status: 'pending' | 'paid'; }> {
   try {
     const data = await sql<InvoiceForm>`
       SELECT
@@ -137,7 +137,7 @@ export async function fetchInvoiceById(id: string) {
       WHERE invoices.id = ${id};
     `;
 
-    const invoice = data.rows.map((invoice: { amount: number; }) => ({
+    const invoice = data.rows.map((invoice:{id: string; customer_id: string; amount: number; status: 'pending' | 'paid';}) => ({
       ...invoice,
       // Convert amount from cents to dollars
       amount: invoice.amount / 100,
